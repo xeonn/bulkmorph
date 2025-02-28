@@ -32,7 +32,13 @@ impl Fetch {
     /// - Fetches documents in batches and applies the callback to each document.
     pub async fn execute(&mut self) {
         // Fetch metadata about the table (e.g., partitioned status, document count)
-        self.get_metadata().await.unwrap();
+        match self.get_metadata().await {
+            Ok(_) => (),
+            Err(e) => {
+                eprintln!("Failed to fetch table metadata: {}", e);
+                return;
+            }
+        }
 
         let mut count = 1; // Counter for tracking the number of iterations
         let mut total_record = 0; // Total number of records fetched so far
@@ -56,7 +62,6 @@ impl Fetch {
             count += 1; // Increment the iteration counter
         }
     }
-
 
     async fn fetch_and_apply(&mut self) -> Result<usize, Box<dyn std::error::Error>> {
         let url = format!("{}/{}/_find", self.dbprefix, self.dbtable);
