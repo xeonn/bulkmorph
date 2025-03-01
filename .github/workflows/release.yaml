@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:  # Allows manual execution from GitHub Actions UI
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            extension: ""
+          - target: x86_64-pc-windows-gnu
+            os: windows-latest
+            extension: ".exe"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Install OpenSSL for Linux
+      - name: Install OpenSSL (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y pkg-config libssl-dev
+
+      # Install OpenSSL for Windows
+      - name: Install OpenSSL (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install openssl
+          echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $GITHUB_ENV
+          echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL-Win64\lib" >> $GITHUB_ENV
+          echo "OPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL-Win64\include" >> $GITHUB_ENV
+
+      - name: Build project
+        run: cargo build --release --target ${{ matrix.target }}
+        env:
+          OPENSSL_VENDORED: "1"
+          OPENSSL_STATIC: "1"
+
+      - name: Rename and package binary
+        run: |
+          mv target/${{ matrix.target }}/release/bulkmorph${{ matrix.extension }} bulkmorph-${{ matrix.target }}${{ matrix.extension }}
+          tar -czvf bulkmorph-${{ matrix.target }}.tar.gz bulkmorph-${{ matrix.target }}${{ matrix.extension }}
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bulkmorph-${{ matrix.target }}
+          path: bulkmorph-${{ matrix.target }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded files
+        run: ls -R artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
