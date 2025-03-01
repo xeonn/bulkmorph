@@ -111,6 +111,7 @@ async fn main() {
                             // validate the transformed document again, if it is still invalid, return
                             let err = valid_proto::validate_json(&file_descriptor_set, &table_name, &transformed_doc, ignore_list.clone());
                             if err.len() > 0 {
+                                println!();
                                 println!("{} will not be updated because it still does not match the schema after transform", doc["_id"]);
                                 for e in err {
                                     println!("Error: {} - {:?}", e.field, e.error_type);
