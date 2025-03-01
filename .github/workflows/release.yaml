@@ -32,21 +32,23 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # Install OpenSSL for Linux
-      - name: Install OpenSSL (Linux)
+      # Install dependencies for Linux
+      - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt update
-          sudo apt install -y pkg-config libssl-dev
+          sudo apt install -y pkg-config libssl-dev lua5.4 liblua5.4-dev
+          echo "PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig" >> $GITHUB_ENV
 
-      # Install OpenSSL for Windows
-      - name: Install OpenSSL (Windows)
+      # Install dependencies for Windows
+      - name: Install dependencies (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          choco install openssl
+          choco install openssl lua
           echo "OPENSSL_DIR=C:\Program Files\OpenSSL-Win64" >> $GITHUB_ENV
           echo "OPENSSL_LIB_DIR=C:\Program Files\OpenSSL-Win64\lib" >> $GITHUB_ENV
           echo "OPENSSL_INCLUDE_DIR=C:\Program Files\OpenSSL-Win64\include" >> $GITHUB_ENV
+          echo "LUA_DIR=C:\Program Files\Lua" >> $GITHUB_ENV
 
       - name: Build project
         run: cargo build --release --target ${{ matrix.target }}
