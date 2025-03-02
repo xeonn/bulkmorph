@@ -11,7 +11,7 @@ It is still work in progress but usable nonetheless under correct condition.
 - Handles any dataset size
 
 ## Installation
-Download the latest binary from the [releases page](https://github.com/your-repo/bulkmorph/releases) and extract it to your desired location.
+Download the latest binary from the [releases page](https://github.com/xeonn/bulkmorph/releases) and extract it to your desired location.
 
 ## Usage
 ```sh
