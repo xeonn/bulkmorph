@@ -10,6 +10,7 @@ use protobuf::descriptor::FileDescriptorSet;
 use protobuf_parse::Parser;
 use reqwest::{Client, StatusCode};
 use serde_json::Value;
+use tokio::sync::futures;
 
 #[tokio::main]
 async fn main() {
@@ -129,10 +130,17 @@ async fn main() {
                             } else if !dry_run {
                                 let dbhost_clone = db_host.clone();
                                 let table_name = table_name.clone();
-                                tokio::spawn(async move {
-                                    let client = Client::new();
-                                    update_document(&client, &dbhost_clone, &table_name, &transformed_doc).await.unwrap();
-                                    println!("{} updated successfully", doc["_id"]);
+
+                                tokio::task::block_in_place(|| {
+                                    let rt = tokio::runtime::Runtime::new().unwrap();
+                                    rt.block_on(async move {
+                                        let client = Client::new();
+                                        if let Err(e) = update_document(&client, &dbhost_clone, &table_name, &transformed_doc).await {
+                                            eprintln!("Failed to update document {}: {}", doc["_id"], e);
+                                        } else {
+                                            println!("{} updated successfully", doc["_id"]);
+                                        }
+                                    });
                                 });
                             } else {
                                 println!("{} will be updated", doc["_id"]);
