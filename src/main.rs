@@ -10,7 +10,6 @@ use protobuf::descriptor::FileDescriptorSet;
 use protobuf_parse::Parser;
 use reqwest::{Client, StatusCode};
 use serde_json::Value;
-use tokio::sync::futures;
 
 #[tokio::main]
 async fn main() {
