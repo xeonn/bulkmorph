@@ -25,6 +25,7 @@ async fn main() {
     // Extract arguments for convenience
     let db_host = args.db_url.clone();
     let table_name = args.table_name.clone();
+    let ignore_list = args.ignore_list.clone();
     let dry_run = args.dry_run;
     let limit = args.limit;
     let script_dir = args.script_dir.clone();
@@ -95,7 +96,10 @@ async fn main() {
     let fetcher = Fetch::new(&db_host, &table_name, limit);
 
     // fields to ignore because of couchdb metadata
-    let ignore_list = vec!["_id".to_string(), "_rev".to_string()];
+    // let ignore_list = vec!["_id".to_string(), "_rev".to_string()];
+
+    // convert ignore list to a vector of strings
+    let ignore_list: Vec<String> = ignore_list.split(',').map(|s| s.to_string()).collect();
 
     fetcher
         .with_callback(Box::new({
@@ -111,12 +115,16 @@ async fn main() {
                             // validate the transformed document again, if it is still invalid, return
                             let err = valid_proto::validate_json(&file_descriptor_set, &table_name, &transformed_doc, ignore_list.clone());
                             if err.len() > 0 {
-                                println!();
-                                println!("{} will not be updated because it still does not match the schema after transform", doc["_id"]);
-                                for e in err {
-                                    println!("Error: {} - {:?}", e.field, e.error_type);
+                                if !args.stat {
+                                    println!();
+                                    println!("{} will not be updated because it still does not match the schema after transform", doc["_id"]);
+                                    for e in err {
+                                        println!("Error: {} - {:?}", e.field, e.error_type);
+                                    }
+                                    println!("---------------------------------");
+                                } else {
+                                    println!("{}", doc["_id"].as_str().unwrap());
                                 }
-                                println!("---------------------------------");
                                 return;
                             } else if !dry_run {
                                 let dbhost_clone = db_host.clone();
